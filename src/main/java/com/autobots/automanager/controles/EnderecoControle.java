@@ -3,12 +3,7 @@ package com.autobots.automanager.controles;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.autobots.automanager.entidades.Cliente;
 import com.autobots.automanager.entidades.Endereco;
@@ -17,35 +12,52 @@ import com.autobots.automanager.repositorios.ClienteRepositorio;
 import com.autobots.automanager.repositorios.EnderecoRepositorio;
 
 @RestController
+@RequestMapping("/endereco")
 public class EnderecoControle {
 
-	@Autowired
-	private ClienteRepositorio repositorio;
-	
-	@Autowired
-	private EnderecoRepositorio repositorioEndereco;
-	
-	@GetMapping("/endereco")
-	public List<Endereco> buscarEnderecos(){
-		List<Endereco> endereco = repositorioEndereco.findAll();
-		return endereco;
-	}
-	
-	@PostMapping("/cadastrar/endereco/{id}")
-	public void cadastrarEndereco(@RequestBody Endereco endereco, @PathVariable long id) {
-		Cliente alvo = repositorio.getById(id);
-		alvo.setEndereco(endereco);
-		repositorioEndereco.save(endereco);
-	}
-	
-	@PutMapping("/atualizar/endereco")
-	public void atualizarEndereco(
-		@RequestBody Endereco atualizacao) {
-		Endereco end = repositorioEndereco.getById(atualizacao.getId());
-		EnderecoAtualizador atualizador = new EnderecoAtualizador();
-		atualizador.atualizar(end, atualizacao);
-		repositorioEndereco.save(end);
-	}
-	
-	
+    @Autowired
+    private ClienteRepositorio clienteRepositorio;
+    
+    @Autowired
+    private EnderecoRepositorio enderecoRepositorio;
+    
+    @GetMapping("/listar")
+    public List<Endereco> listarEnderecos() {
+        return enderecoRepositorio.findAll();
+    }
+    
+    @PostMapping("/cadastrar/{idCliente}")
+    public void cadastrarEndereco(@PathVariable Long idCliente, @RequestBody Endereco endereco) {
+        Cliente cliente = clienteRepositorio.findById(idCliente)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado com id: " + idCliente));
+        
+        cliente.setEndereco(endereco);
+        clienteRepositorio.save(cliente);
+    }
+    
+    @PutMapping("/atualizar/{id}")
+    public void atualizarEndereco(@PathVariable Long id, @RequestBody Endereco atualizacao) {
+        Endereco endereco = enderecoRepositorio.findById(id)
+                .orElseThrow(() -> new RuntimeException("Endereço não encontrado com id: " + id));
+        
+        EnderecoAtualizador atualizador = new EnderecoAtualizador();
+        atualizador.atualizar(endereco, atualizacao);
+        
+        enderecoRepositorio.save(endereco);
+    }
+    
+    @DeleteMapping("/deletar/{id}")
+    public void deletarEndereco(@PathVariable Long id) {
+        Endereco endereco = enderecoRepositorio.findById(id)
+                .orElseThrow(() -> new RuntimeException("Endereço não encontrado com id: " + id));
+
+        List<Cliente> clientes = clienteRepositorio.findAll();
+        for (Cliente cliente : clientes) {
+            if (cliente.getEndereco() != null && cliente.getEndereco().getId().equals(id)) {
+                cliente.setEndereco(null);
+                clienteRepositorio.save(cliente);
+            }
+        }
+        enderecoRepositorio.delete(endereco);
+    }
 }
