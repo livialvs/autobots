@@ -22,6 +22,9 @@ public class ServicoControle {
 
     @Autowired
     private ServicoServico servicoServico;
+    
+    @Autowired
+    private ServicoSelecionador servicoSelecionador;
 
     @Autowired
     private EmpresaServico empresaServico;
@@ -44,12 +47,14 @@ public class ServicoControle {
 
     @GetMapping("/{id}")
     public ResponseEntity<Servico> buscarServico(@PathVariable Long id) {
-        Servico servico = servicoServico.buscarServico(id);
-        if (servico == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        adicionadorLinkServico.adicionarLink(servico);
-        return new ResponseEntity<>(servico, HttpStatus.OK);
+      List<Servico> servicos = servicoServico.buscarServicos();
+      Servico select = servicoSelecionador.selecionar(servicos, id);
+      if (select == null) {
+        return new ResponseEntity<Servico>(HttpStatus.NOT_FOUND);
+      } else {
+    	adicionadorLinkServico.adicionarLink(select);
+        return new ResponseEntity<Servico>(select, HttpStatus.FOUND);
+      }
     }
 
     @PostMapping("/cadastro/{idEmpresa}")

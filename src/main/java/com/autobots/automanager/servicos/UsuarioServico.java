@@ -127,6 +127,7 @@ public class UsuarioServico {
     }
 
     private void atualizarDocumentoDados(Documento novo, Documento obj) {
+    	novo.setTipo(obj.getTipo());
         novo.setNumero(obj.getNumero());
         novo.setDataEmissao(new Date());
     }

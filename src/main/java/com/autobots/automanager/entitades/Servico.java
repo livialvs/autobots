@@ -9,12 +9,10 @@ import javax.persistence.Id;
 import org.springframework.hateoas.RepresentationModel;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
-@EqualsAndHashCode
 @Data
 @Entity
-public class Servico extends RepresentationModel<Servico>{
+public class Servico extends RepresentationModel<Servico> {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;

@@ -58,16 +58,17 @@ public class VeiculoControle {
         }
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Veiculo> buscarVeiculo(@PathVariable Long id) {
-        Veiculo veiculo = veiculoServico.buscarVeiculo(id);
-        if (veiculo == null) {
-            return ResponseEntity.notFound().build();
-        } else {
-        	adicionadorLinkVeiculo.adicionarLink(veiculo);
-            return ResponseEntity.ok(veiculo);
-        }
-    }
+	@GetMapping("/{id}")
+	public ResponseEntity<Veiculo> buscarVeiculo(@PathVariable Long id){
+		List<Veiculo> veiculos = veiculoServico.buscarVeiculos();
+		Veiculo select = selecionador.selecionar(veiculos, id);
+		if(select == null) {
+			return new ResponseEntity<Veiculo>(HttpStatus.NOT_FOUND);
+		}else {
+			adicionadorLinkVeiculo.adicionarLink(select);
+			return new ResponseEntity<Veiculo>(select, HttpStatus.FOUND);
+		}
+	}
     
     @PostMapping("/cadastro/{idUsuario}")
     public ResponseEntity<?> cadastroVeiculo(@PathVariable Long idUsuario, @RequestBody Veiculo body) {

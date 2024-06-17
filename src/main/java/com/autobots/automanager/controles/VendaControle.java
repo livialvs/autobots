@@ -1,5 +1,7 @@
 package com.autobots.automanager.controles;
 
+import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -57,38 +59,31 @@ public class VendaControle {
 
     @GetMapping
     public ResponseEntity<List<Venda>> buscarVendas() {
-        List<Venda> vendas = servico.buscarVendas();
-        if (vendas.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        } else {
-        	adicionadorLinkVenda.adicionarLink(vendas);
-            return ResponseEntity.ok(vendas);
-        }
+      List<Venda> vendas = servico.buscarVendas();
+      HttpStatus status = HttpStatus.CONFLICT;
+      if (vendas.isEmpty()) {
+        status = HttpStatus.NOT_FOUND;
+        return new ResponseEntity<List<Venda>>(status);
+      } else {
+        status = HttpStatus.FOUND;
+        adicionadorLinkVenda.adicionarLink(vendas);
+        ResponseEntity<List<Venda>> resposta = new ResponseEntity<List<Venda>>(vendas, status);
+        return resposta;
+      }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Venda> buscarVenda(@PathVariable Long id) {
-        Venda venda = servico.buscarVenda(id);
-        if (venda == null) {
-            return ResponseEntity.notFound().build();
-        } else {
-        	adicionadorLinkVenda.adicionarLink(venda);
-            return ResponseEntity.ok(venda);
-        }
+      List<Venda> vendas = servico.buscarVendas();
+      Venda select = selecionador.selecionar(vendas, id);
+      if (select == null) {
+        return new ResponseEntity<Venda>(HttpStatus.NOT_FOUND);
+      } else {
+    	  adicionadorLinkVenda.adicionarLink(select);
+        return new ResponseEntity<Venda>(select, HttpStatus.FOUND);
+      }
     }
-
-    @PutMapping("/atualizar/{id}")
-    public ResponseEntity<?> atualizarVenda(@PathVariable Long id, @RequestBody Venda vendaAtualizada) {
-        Venda vendaAtual = servico.buscarVenda(id);
-        if (vendaAtual == null) {
-            return ResponseEntity.notFound().build();
-        } else {
-            vendaAtualizada.setId(id);
-            servico.salvarVenda(vendaAtualizada);
-            return ResponseEntity.ok("Venda atualizada com sucesso");
-        }
-    }
-
+    
     @PostMapping("/cadastro/{idEmpresa}")
     public ResponseEntity<?> cadastroVenda(
       @RequestBody Venda vendas,
@@ -109,31 +104,43 @@ public class VendaControle {
         Veiculo veiculoSelecionador = servicoVeiculo.buscarVeiculo(
           vendas.getVeiculo().getId()
         );
+
+        vendas.setCadastro(new Date()); 
+
+        Set<Mercadoria> novasMercadorias = new HashSet<>();
         for (Mercadoria bodyMercadoria : vendas.getMercadorias()) {
-          vendas.getMercadorias().clear();
           Mercadoria novaMercadoria = new Mercadoria();
           novaMercadoria.setDescricao(bodyMercadoria.getDescricao());
           novaMercadoria.setCadastro(bodyMercadoria.getCadastro());
-          novaMercadoria.setFabricao(bodyMercadoria.getFabricao());
+
+          novaMercadoria.setFabricao(new Date()); 
+
           novaMercadoria.setNome(bodyMercadoria.getNome());
           novaMercadoria.setQuantidade(bodyMercadoria.getQuantidade());
           novaMercadoria.setValidade(bodyMercadoria.getValidade());
           novaMercadoria.setValor(bodyMercadoria.getValor());
-          vendas.getMercadorias().add(novaMercadoria);
+          novasMercadorias.add(novaMercadoria);
         }
+        vendas.setMercadorias(novasMercadorias);
+
+        Set<Servico> novosServicos = new HashSet<>();
         for (Servico bodyServico : vendas.getServicos()) {
           Servico novoServico = new Servico();
           novoServico.setDescricao(bodyServico.getDescricao());
           novoServico.setNome(bodyServico.getNome());
           novoServico.setValor(bodyServico.getValor());
-          vendas.getServicos().add(novoServico);
+          novosServicos.add(novoServico);
         }
+        vendas.setServicos(novosServicos);
+
         funcionarioSelecionado.getVendas().add(vendas);
         vendas.setCliente(clienteSelecionado);
         vendas.setFuncionario(funcionarioSelecionado);
         vendas.setVeiculo(veiculoSelecionador);
         selecionada.getVendas().add(vendas);
+
         servicoEmpresa.salvarEmpresa(selecionada);
+
         return new ResponseEntity<>(
           "Serviço cadastrado na empresa: " + selecionada.getNomeFantasia(),
           HttpStatus.CREATED
@@ -147,34 +154,76 @@ public class VendaControle {
     }
 
 
-    @DeleteMapping("/deletar/{id}")
-    public ResponseEntity<?> deletarVendas(@PathVariable Long id) {
-      List<Empresa> empresas = servicoEmpresa.buscarEmpresas();
-      List<Veiculo> veiculos = servicoVeiculo.buscarVeiculos();
-      List<Usuario> usuarios = servicoUsuario.buscarUsuarios();
-      for (Empresa mercadoriaEmpresa : empresas) {
-        for (Venda empresaMercadoria : mercadoriaEmpresa.getVendas()) {
-          if (empresaMercadoria.getId() == id) {
-            servicoEmpresa.deletarVenda(mercadoriaEmpresa.getId(), id);
-          }
+
+    @PutMapping("/atualizar/{id}")
+    public ResponseEntity<?> atualizarVenda(@PathVariable Long id, @RequestBody Venda vendaAtualizada) {
+        Venda vendaAtual = servico.buscarVenda(id);
+        if (vendaAtual == null) {
+            return ResponseEntity.notFound().build();
         }
-      }
-      for (Veiculo mercadoriaEmpresa : veiculos) {
-        for (Venda empresaMercadoria : mercadoriaEmpresa.getVendas()) {
-          if (empresaMercadoria.getId() == id) {
-          	empresaMercadoria.setVeiculo(null);
-            servicoVeiculo.deletarVenda(mercadoriaEmpresa.getId(), id);
-          }
+
+        if (vendaAtualizada.getCliente() == null || vendaAtualizada.getCliente().getNome() == null ||
+            vendaAtualizada.getFuncionario() == null || vendaAtualizada.getFuncionario().getNome() == null) {
+            return ResponseEntity.badRequest().body("Cliente e funcionário são obrigatórios e devem ter nome preenchido.");
         }
-      }
-      for (Usuario mercadoriaEmpresa : usuarios) {
-        for (Venda empresaMercadoria : mercadoriaEmpresa.getVendas()) {
-          if (empresaMercadoria.getId() == id) {
-            servicoUsuario.deletarVenda(mercadoriaEmpresa.getId(), id);
-          }
-        }
-      }
-      servico.deletarVenda(id);
-      return null;
+
+        vendaAtualizada.setId(id);
+        servico.salvarVenda(vendaAtualizada);
+        return ResponseEntity.ok("Venda atualizada com sucesso");
     }
+    
+	@DeleteMapping("/deletar/{idVenda}")
+	public ResponseEntity<?> deletarVenda(@PathVariable Long idVenda) {
+		List<Empresa> empresas = servicoEmpresa.buscarEmpresas();
+		List<Usuario> usuarios = servicoUsuario.buscarUsuarios();
+		List<Veiculo> veiculos = servicoVeiculo.buscarVeiculos();
+		Venda venda = servico.buscarVenda(idVenda);
+
+		if (venda == null) {
+			return new ResponseEntity<>("Venda não encontrada...", HttpStatus.NOT_FOUND);
+		} else {
+
+			for (Empresa empresa : servicoEmpresa.buscarEmpresas()){
+				if (!empresa.getVendas().isEmpty()) {
+					for (Venda vendaEmpresa : empresa.getVendas()) {
+						if (vendaEmpresa.getId() == idVenda) {
+							for (Empresa empresaRegistrada : empresas) {
+								empresaRegistrada.getVendas().remove(vendaEmpresa);
+							}
+						}
+					}
+				}
+			}
+
+			for (Usuario usuario : servicoUsuario.buscarUsuarios()) {
+				if (!usuario.getVendas().isEmpty()) {
+					for (Venda vendaUsuario : usuario.getVendas()) {
+						if (vendaUsuario.getId() == idVenda) {
+							for (Usuario usuarioRegistrado : usuarios) {
+								usuarioRegistrado.getVendas().remove(vendaUsuario);
+							}
+						}
+					}
+				}
+			}
+
+			for (Veiculo veiculo : servicoVeiculo.buscarVeiculos()) {
+				if (!veiculo.getVendas().isEmpty()) {
+					for (Venda vendaVeiculo : veiculo.getVendas()) {
+						if (vendaVeiculo.getId() == idVenda) {
+							for (Veiculo veiculoRegistrado : veiculos) {
+								veiculoRegistrado.getVendas().remove(vendaVeiculo);
+							}
+						}
+					}
+				}
+			}
+
+			empresas = servicoEmpresa.buscarEmpresas();
+			usuarios = servicoUsuario.buscarUsuarios();
+			veiculos = servicoVeiculo.buscarVeiculos();
+			servico.deletarVenda(idVenda);
+			return new ResponseEntity<>("Venda deletada com sucesso", HttpStatus.ACCEPTED);
+		}
+	}
 }

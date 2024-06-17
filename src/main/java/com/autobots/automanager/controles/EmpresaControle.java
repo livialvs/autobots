@@ -2,6 +2,8 @@ package com.autobots.automanager.controles;
 
 import com.autobots.automanager.adicionadores.AdicionadorLinkEmpresa;
 import com.autobots.automanager.entitades.Empresa;
+import com.autobots.automanager.entitades.Endereco;
+import com.autobots.automanager.repositorios.RepositorioEmpresa;
 import com.autobots.automanager.selecionadores.EmpresaSelecionador;
 import com.autobots.automanager.servicos.EmpresaServico;
 
@@ -26,6 +28,9 @@ public class EmpresaControle {
     @Autowired
     private AdicionadorLinkEmpresa adicionadorLink;
 
+    @Autowired
+    private RepositorioEmpresa repositorio;
+    
     @GetMapping
     public ResponseEntity<List<Empresa>> buscarEmpresas() {
         List<Empresa> empresas = empresaServico.buscarEmpresas();
@@ -67,14 +72,39 @@ public class EmpresaControle {
     }
 
     @PutMapping("/atualizar/{id}")
-    public ResponseEntity<String> atualizarEmpresa(@PathVariable Long id, @RequestBody Empresa atualizacao) {
-        Empresa empresa = selecionador.selecionar(empresaServico.buscarEmpresas(), id);
-        if (empresa != null) {
-            atualizacao.setId(id);
-            empresaServico.atualizarEmpresa(atualizacao);
-            return new ResponseEntity<>("Atualizado com sucesso", HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Empresa não encontrada", HttpStatus.NOT_FOUND);
+    public ResponseEntity<String> atualizarEmpresa(@PathVariable Long id, @RequestBody Empresa empresaAtualizada) {
+        Empresa empresaExistente = repositorio.findById(id).orElse(null);
+        if (empresaExistente == null) {
+            return ResponseEntity.notFound().build();
         }
+
+        if (empresaAtualizada.getNomeFantasia() != null) {
+            empresaExistente.setNomeFantasia(empresaAtualizada.getNomeFantasia());
+        }
+        
+        if (empresaAtualizada.getRazaoSocial() != null) {
+            empresaExistente.setRazaoSocial(empresaAtualizada.getRazaoSocial());
+        }
+
+        if (empresaAtualizada.getEndereco() != null) {
+            Endereco enderecoAtualizado = empresaAtualizada.getEndereco();
+
+            if (empresaExistente.getEndereco() == null) {
+                empresaExistente.setEndereco(new Endereco());
+            }
+
+            empresaExistente.getEndereco().setEstado(enderecoAtualizado.getEstado());
+            empresaExistente.getEndereco().setCidade(enderecoAtualizado.getCidade());
+            empresaExistente.getEndereco().setBairro(enderecoAtualizado.getBairro());
+            empresaExistente.getEndereco().setRua(enderecoAtualizado.getRua());
+            empresaExistente.getEndereco().setNumero(enderecoAtualizado.getNumero());
+            empresaExistente.getEndereco().setCodigoPostal(enderecoAtualizado.getCodigoPostal());
+            empresaExistente.getEndereco().setInformacoesAdicionais(enderecoAtualizado.getInformacoesAdicionais());
+        }
+
+        repositorio.save(empresaExistente);
+
+        return ResponseEntity.ok("Empresa atualizada com sucesso");
     }
+
 }

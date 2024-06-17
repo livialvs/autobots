@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -78,13 +79,19 @@ public class MercadoriaControle {
 
         mercadoriaServico.salvarMercadoria(novaMercadoria);
 
+        List<Empresa> empresasParaAtualizar = new ArrayList<>();
         for (Empresa empresa : empresaServico.buscarEmpresas()) {
             for (Usuario usuario : empresa.getUsuarios()) {
                 if (usuario.getId().equals(cliente.getId())) {
-                    empresa.getMercadorias().add(novaMercadoria);
-                    empresaServico.salvarEmpresa(empresa);
+                    empresasParaAtualizar.add(empresa);
+                    break;
                 }
             }
+        }
+
+        for (Empresa empresa : empresasParaAtualizar) {
+            empresa.getMercadorias().add(novaMercadoria);
+            empresaServico.salvarEmpresa(empresa);
         }
 
         cliente.getMercadorias().add(novaMercadoria);
@@ -92,6 +99,7 @@ public class MercadoriaControle {
 
         return new ResponseEntity<>("Mercadoria cadastrada com sucesso", HttpStatus.CREATED);
     }
+
 
     @DeleteMapping("/deletar/{idMercadoria}")
     public ResponseEntity<String> deletarMercadoria(@PathVariable Long idMercadoria) {

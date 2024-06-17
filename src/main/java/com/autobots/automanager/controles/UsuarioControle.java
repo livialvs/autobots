@@ -2,6 +2,8 @@ package com.autobots.automanager.controles;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,16 +18,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.autobots.automanager.adicionadores.AdicionadorLinkUsuario;
+import com.autobots.automanager.entitades.Credencial;
 import com.autobots.automanager.entitades.CredencialUsuarioSenha;
 import com.autobots.automanager.entitades.Documento;
 import com.autobots.automanager.entitades.Email;
 import com.autobots.automanager.entitades.Empresa;
+import com.autobots.automanager.entitades.Mercadoria;
+import com.autobots.automanager.entitades.Telefone;
 import com.autobots.automanager.entitades.Usuario;
 import com.autobots.automanager.entitades.Veiculo;
 import com.autobots.automanager.entitades.Venda;
+import com.autobots.automanager.repositorios.RepositorioEmpresa;
+import com.autobots.automanager.repositorios.RepositorioUsuario;
+import com.autobots.automanager.repositorios.RepositorioVeiculo;
+import com.autobots.automanager.repositorios.RepositorioVenda;
 import com.autobots.automanager.selecionadores.UsuarioSelecionador;
 import com.autobots.automanager.servicos.EmpresaServico;
 import com.autobots.automanager.servicos.UsuarioServico;
+import com.autobots.automanager.servicos.VeiculoServico;
+import com.autobots.automanager.servicos.VendaServico;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -43,6 +54,24 @@ public class UsuarioControle {
     @Autowired
     private UsuarioSelecionador usuarioSelecionador;
 
+    @Autowired
+    private VendaServico vendaServico;
+    
+    @Autowired
+    private VeiculoServico veiculoServico;
+    
+    @Autowired
+    private RepositorioUsuario usuarioRepositorio;
+    
+    @Autowired
+    private RepositorioEmpresa empresaRepositorio;
+    
+    @Autowired
+    private RepositorioVenda vendaRepositorio;
+    
+    @Autowired
+    private RepositorioVeiculo veiculoRepositorio;
+    
     @GetMapping
     public ResponseEntity<List<Usuario>> buscarUsuarios() {
         List<Usuario> usuarios = usuarioServico.buscarUsuarios();
@@ -65,40 +94,90 @@ public class UsuarioControle {
         }
     }
 
-    @DeleteMapping("/deletar/{id}")
-    public ResponseEntity<String> deletarUsuario(@PathVariable Long id) {
-        Usuario usuario = usuarioSelecionador.selecionar(usuarioServico.buscarUsuarios(), id);
-        if (usuario == null) {
-            return ResponseEntity.notFound().build();
-        } else {
-            limparRelacionamentos(usuario);
-            usuarioServico.deletar(id);
-            return ResponseEntity.ok("Usuário deletado com sucesso");
-        }
-    }
+	@DeleteMapping("/deletar/{idUsuario}")
+	public ResponseEntity<?> excluirUsuario(@PathVariable Long idUsuario){
+		Usuario verificacao = usuarioRepositorio.findById(idUsuario).orElse(null);
+		if(verificacao == null) {
+			return new ResponseEntity<String>("Usuario não encontrado!",HttpStatus.NOT_FOUND);
+		}else {
+			
+			for(Venda venda: vendaRepositorio.findAll()) {
+				if(venda.getCliente() != null) {		
+					if(venda.getCliente().getId() == idUsuario) {
+						venda.setCliente(null);
+						vendaRepositorio.save(venda);
+					}
+				}
+				if(venda.getFuncionario() != null) {	
+					if(venda.getFuncionario().getId() == idUsuario) {
+						venda.setFuncionario(null);
+						vendaRepositorio.save(venda);
+					}
+				}
+			}
+			
+			for(Veiculo veiculo: veiculoRepositorio.findAll()) {
+				if(veiculo.getProprietario() != null) {	
+					if(veiculo.getProprietario().getId() == idUsuario) {
+						veiculo.setProprietario(null);
+						veiculoRepositorio.save(veiculo);
+					}
+				}
+			}
+			
+			for(Empresa empresa: empresaRepositorio.findAll()) {
+				if(!empresa.getUsuarios().isEmpty()) {
+					for(Usuario usuario: empresa.getUsuarios()) {
+						if(usuario.getId() == idUsuario) {
+							empresa.getUsuarios().remove(usuario);
+							empresaRepositorio.save(empresa);
+						}
+						break;
+					}
+				}
+			}
+			
+			usuarioRepositorio.deleteById(idUsuario);
+			return new ResponseEntity<>("Usuario deletado com sucesso", HttpStatus.OK);
+		}
+	}
 
     private void limparRelacionamentos(Usuario usuario) {
+        // Limpar documentos
         usuario.getDocumentos().clear();
+
+        // Limpar telefones
         usuario.getTelefones().clear();
+
+        // Limpar emails
         usuario.getEmails().clear();
+
+        // Limpar credenciais
         usuario.getCredenciais().clear();
+
+        // Limpar mercadorias
         usuario.getMercadorias().clear();
-        for (Veiculo veiculo : usuario.getVeiculos()) {
-            veiculo.setProprietario(null);
-        }
+
+        // Limpar veículos
+        usuario.getVeiculos().forEach(veiculo -> veiculo.setProprietario(null));
         usuario.getVeiculos().clear();
-        for (Venda venda : usuario.getVendas()) {
+
+        // Limpar vendas
+        usuario.getVendas().forEach(venda -> {
             if (venda.getFuncionario() != null && venda.getFuncionario().getId().equals(usuario.getId())) {
                 venda.setFuncionario(null);
             }
             if (venda.getCliente() != null && venda.getCliente().getId().equals(usuario.getId())) {
                 venda.setCliente(null);
             }
-        }
+        });
         usuario.getVendas().clear();
-        
+
+        // Limpar endereço
         usuario.setEndereco(null);
     }
+
+
 
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<String> atualizarUsuario(@PathVariable Long id, @RequestBody Usuario usuarioAtualizado) {
@@ -127,12 +206,16 @@ public class UsuarioControle {
                         .body("Credencial já existe");
             }
         }
+        
+        registroDeCredencial.setCriacao(new Date());
+        
         usuario.getCredenciais().add(registroDeCredencial);
         usuarioServico.salvarUsuario(usuario);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Credencial cadastrada");
     }
+
 
     @PostMapping("/cadastro/{idEmpresa}")
     public ResponseEntity<String> cadastrarUsuario(@PathVariable Long idEmpresa, @RequestBody Usuario usuario) {
@@ -201,5 +284,4 @@ public class UsuarioControle {
             ResponseEntity.status(HttpStatus.CREATED).body("Cadastro Efetuado");
         }
     }
-
 }
