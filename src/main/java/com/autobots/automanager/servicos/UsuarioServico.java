@@ -227,4 +227,8 @@ public class UsuarioServico {
             repositorio.save(selecionado);
         }
     }
+    
+	public List<CredencialUsuarioSenha> credencial() {
+		return repositorioCredencialUsuarioSenha.findAll();
+	}
 }

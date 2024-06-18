@@ -10,6 +10,7 @@ import com.autobots.automanager.servicos.EmpresaServico;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
@@ -31,6 +32,8 @@ public class EmpresaControle {
     @Autowired
     private RepositorioEmpresa repositorio;
     
+    
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @GetMapping
     public ResponseEntity<List<Empresa>> buscarEmpresas() {
         List<Empresa> empresas = empresaServico.buscarEmpresas();
@@ -42,6 +45,7 @@ public class EmpresaControle {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<Empresa> buscarEmpresa(@PathVariable Long id) {
         Empresa empresa = selecionador.selecionar(empresaServico.buscarEmpresas(), id);
@@ -53,6 +57,7 @@ public class EmpresaControle {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @PostMapping("/cadastro")
     public ResponseEntity<String> cadastrarEmpresa(@RequestBody Empresa empresa) {
         empresa.setCadastro(new Date());
@@ -60,6 +65,7 @@ public class EmpresaControle {
         return new ResponseEntity<>("Empresa: " + empresa.getNomeFantasia() + " cadastrada com sucesso", HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @DeleteMapping("/deletar/{id}")
     public ResponseEntity<String> deletarEmpresa(@PathVariable Long id) {
         Empresa empresa = selecionador.selecionar(empresaServico.buscarEmpresas(), id);
@@ -71,6 +77,7 @@ public class EmpresaControle {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<String> atualizarEmpresa(@PathVariable Long id, @RequestBody Empresa empresaAtualizada) {
         Empresa empresaExistente = repositorio.findById(id).orElse(null);

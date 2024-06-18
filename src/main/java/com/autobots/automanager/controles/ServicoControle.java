@@ -12,6 +12,7 @@ import com.autobots.automanager.servicos.VendaServico;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,6 +36,7 @@ public class ServicoControle {
     @Autowired
     private AdicionadorLinkServico adicionadorLinkServico;
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @GetMapping
     public ResponseEntity<List<Servico>> buscarServicos() {
         List<Servico> todos = servicoServico.buscarServicos();
@@ -45,6 +47,7 @@ public class ServicoControle {
         return new ResponseEntity<>(todos, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @GetMapping("/{id}")
     public ResponseEntity<Servico> buscarServico(@PathVariable Long id) {
       List<Servico> servicos = servicoServico.buscarServicos();
@@ -57,6 +60,7 @@ public class ServicoControle {
       }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @PostMapping("/cadastro/{idEmpresa}")
     public ResponseEntity<String> cadastrarServico(@RequestBody Servico novoServico, @PathVariable Long idEmpresa) {
         Empresa empresa = empresaServico.buscarEmpresa(idEmpresa);
@@ -71,6 +75,7 @@ public class ServicoControle {
         return new ResponseEntity<>("Serviço cadastrado com sucesso na empresa " + empresa.getNomeFantasia(), HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<String> atualizarServico(@PathVariable Long id, @RequestBody Servico servicoAtualizado) {
         Servico servicoAtual = servicoServico.buscarServico(id);
@@ -84,6 +89,7 @@ public class ServicoControle {
         return new ResponseEntity<>("Serviço atualizado com sucesso", HttpStatus.OK);
     }
     
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @DeleteMapping("/deletar/{id}")
     public ResponseEntity<String> deletarServico(@PathVariable Long id) {
         Servico servico = servicoServico.buscarServico(id);

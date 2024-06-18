@@ -7,6 +7,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -72,6 +73,8 @@ public class UsuarioControle {
     @Autowired
     private RepositorioVeiculo veiculoRepositorio;
     
+    
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_GERENTE','ROLE_VENDEDOR')")
     @GetMapping
     public ResponseEntity<List<Usuario>> buscarUsuarios() {
         List<Usuario> usuarios = usuarioServico.buscarUsuarios();
@@ -83,6 +86,7 @@ public class UsuarioControle {
         }
     }
     
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_GERENTE','ROLE_CLIENTE','ROLE_VENDEDOR')")
     @GetMapping("/{id}")
     public ResponseEntity<Usuario> buscarUsuario(@PathVariable Long id) {
         Usuario usuario = usuarioSelecionador.selecionar(usuarioServico.buscarUsuarios(), id);
@@ -94,6 +98,7 @@ public class UsuarioControle {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_GERENTE','ROLE_VENDEDOR')")
 	@DeleteMapping("/deletar/{idUsuario}")
 	public ResponseEntity<?> excluirUsuario(@PathVariable Long idUsuario){
 		Usuario verificacao = usuarioRepositorio.findById(idUsuario).orElse(null);
@@ -178,7 +183,7 @@ public class UsuarioControle {
     }
 
 
-
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_GERENTE','ROLE_VENDEDOR')")
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<String> atualizarUsuario(@PathVariable Long id, @RequestBody Usuario usuarioAtualizado) {
         Usuario usuarioExistente = usuarioSelecionador.selecionar(usuarioServico.buscarUsuarios(), id);
@@ -191,6 +196,7 @@ public class UsuarioControle {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_GERENTE','ROLE_CLIENTE','ROLE_VENDEDOR')")
     @PutMapping("/credencial/{idCliente}")
     public ResponseEntity<?> registroCredencial(@RequestBody CredencialUsuarioSenha registroDeCredencial, @PathVariable Long idCliente) {
         List<Usuario> usuarios = usuarioServico.buscarUsuarios();
@@ -217,27 +223,35 @@ public class UsuarioControle {
     }
 
 
+    //@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_GERENTE','ROLE_VENDEDOR')")
     @PostMapping("/cadastro/{idEmpresa}")
     public ResponseEntity<String> cadastrarUsuario(@PathVariable Long idEmpresa, @RequestBody Usuario usuario) {
+        System.out.println("Entrou no método cadastrarUsuario");
         List<Email> buscarEmails = usuarioServico.buscarEmails();
         List<Documento> buscarDocumentos = usuarioServico.buscarDocumentos();
         Empresa main = empresaServico.buscarEmpresa(idEmpresa);
         if (main == null) {
+            System.out.println("Empresa não encontrada");
             return ResponseEntity.notFound().build();
         } else {
             if (usuario.getEmails().isEmpty()) {
+                System.out.println("E-mail não fornecido");
                 return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Por Favor, coloque seu E-mail");
             }
             if (usuario.getDocumentos().isEmpty()) {
+                System.out.println("Documento não fornecido");
                 return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Por favor, Coloque um Documento");
             }
             if (validarDocumentosExistentes(usuario, buscarDocumentos)) {
+                System.out.println("Documento já cadastrado");
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("Esse documento já está cadastrado");
             }
             if (validarEmailsExistentes(usuario, buscarEmails)) {
+                System.out.println("E-mail já cadastrado");
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("Email já cadastrado");
             }
             salvarUsuario(main, usuario);
+            System.out.println("Usuário cadastrado com sucesso");
             return ResponseEntity.status(HttpStatus.CREATED).body("Cadastro Efetuado");
         }
     }

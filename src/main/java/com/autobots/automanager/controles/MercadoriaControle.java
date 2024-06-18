@@ -14,6 +14,7 @@ import com.autobots.automanager.servicos.VendaServico;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -39,6 +40,7 @@ public class MercadoriaControle {
     private AdicionadorLinkMercadoria adicionadorLinkMercadoria;
 
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @GetMapping
     public ResponseEntity<List<Mercadoria>> buscarMercadorias() {
         List<Mercadoria> mercadorias = mercadoriaServico.buscarMercadorias();
@@ -49,6 +51,7 @@ public class MercadoriaControle {
         return new ResponseEntity<>(mercadorias, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @GetMapping("/{id}")
     public ResponseEntity<Mercadoria> buscarMercadoria(@PathVariable Long id) {
         Mercadoria mercadoria = mercadoriaServico.buscarMercadoria(id);
@@ -59,6 +62,7 @@ public class MercadoriaControle {
         return new ResponseEntity<>(mercadoria, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<String> atualizarMercadoria(@PathVariable Long id, @RequestBody Mercadoria mercadoriaAtualizada) {
         Mercadoria mercadoriaAtual = mercadoriaServico.buscarMercadoria(id);
@@ -70,6 +74,8 @@ public class MercadoriaControle {
         return new ResponseEntity<>("Mercadoria atualizada com sucesso", HttpStatus.OK);
     }
 
+   
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @PostMapping("/cadastro/{idCliente}")
     public ResponseEntity<String> cadastrarMercadoria(@RequestBody Mercadoria novaMercadoria, @PathVariable Long idCliente) {
         Usuario cliente = usuarioServico.buscarUsuario(idCliente);
@@ -100,7 +106,7 @@ public class MercadoriaControle {
         return new ResponseEntity<>("Mercadoria cadastrada com sucesso", HttpStatus.CREATED);
     }
 
-
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @DeleteMapping("/deletar/{idMercadoria}")
     public ResponseEntity<String> deletarMercadoria(@PathVariable Long idMercadoria) {
         Mercadoria mercadoria = mercadoriaServico.buscarMercadoria(idMercadoria);

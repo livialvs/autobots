@@ -6,6 +6,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,6 +48,7 @@ public class VeiculoControle {
     @Autowired
     private AdicionadorLinkVeiculo adicionadorLinkVeiculo;
     
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @GetMapping
     public ResponseEntity<List<Veiculo>> buscarVeiculos() {
         List<Veiculo> todos = veiculoServico.buscarVeiculos();
@@ -58,6 +60,7 @@ public class VeiculoControle {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
 	@GetMapping("/{id}")
 	public ResponseEntity<Veiculo> buscarVeiculo(@PathVariable Long id){
 		List<Veiculo> veiculos = veiculoServico.buscarVeiculos();
@@ -70,6 +73,7 @@ public class VeiculoControle {
 		}
 	}
     
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @PostMapping("/cadastro/{idUsuario}")
     public ResponseEntity<?> cadastroVeiculo(@PathVariable Long idUsuario, @RequestBody Veiculo body) {
         Usuario usuario = usuarioSelecionador.selecionar(servicoUsuario.buscarUsuarios(), idUsuario);
@@ -83,6 +87,7 @@ public class VeiculoControle {
         return ResponseEntity.status(HttpStatus.CREATED).body("Veiculo cadastrado para o usuário: " + usuario.getNome());
     }
     
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<?> atualizarVeiculo(@PathVariable Long id, @RequestBody Veiculo atualizador) {
         Veiculo veiculo = veiculoServico.buscarVeiculo(id);
@@ -96,7 +101,7 @@ public class VeiculoControle {
         return ResponseEntity.ok("Veiculo atualizado com sucesso");
     }
     
-    
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @DeleteMapping("/deletar/{id}")
     public ResponseEntity<?> deletarVeiculo(@PathVariable Long id) {
         Veiculo veiculo = veiculoServico.buscarVeiculo(id);

@@ -11,15 +11,21 @@ import com.autobots.automanager.entitades.Telefone;
 import com.autobots.automanager.entitades.Usuario;
 import com.autobots.automanager.entitades.Veiculo;
 import com.autobots.automanager.entitades.Venda;
+import com.autobots.automanager.enumeracoes.Perfil;
 import com.autobots.automanager.enumeracoes.PerfilUsuario;
 import com.autobots.automanager.enumeracoes.TipoDocumento;
 import com.autobots.automanager.enumeracoes.TipoVeiculo;
 import com.autobots.automanager.repositorios.RepositorioEmpresa;
+
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @SpringBootApplication
 public class AutomanagerApplication implements CommandLineRunner {
@@ -33,6 +39,8 @@ public class AutomanagerApplication implements CommandLineRunner {
 
   @Override
   public void run(String... args) throws Exception {
+	BCryptPasswordEncoder codificador = new BCryptPasswordEncoder();
+
     Empresa empresa = new Empresa();
     empresa.setRazaoSocial("Car service toyota ltda");
     empresa.setNomeFantasia("Car service manutenção veicular");
@@ -88,11 +96,17 @@ public class AutomanagerApplication implements CommandLineRunner {
     cpf.setTipo(TipoDocumento.CPF);
 
     funcionario.getDocumentos().add(cpf);
+    
+	List<Perfil> roleArray = new ArrayList<>();
+	roleArray.add(Perfil.ROLE_ADMIN);
+	
+	funcionario.getNivelDeAcesso().addAll(roleArray);
 
     CredencialUsuarioSenha credencialFuncionario = new CredencialUsuarioSenha();
     credencialFuncionario.setInativo(false);
     credencialFuncionario.setNomeUsuario("dompedrofuncionario");
-    credencialFuncionario.setSenha("123456");
+    String senha = codificador.encode("123456");
+    credencialFuncionario.setSenha(senha);
     credencialFuncionario.setCriacao(new Date());
     credencialFuncionario.setUltimoAcesso(new Date());
 
@@ -109,11 +123,15 @@ public class AutomanagerApplication implements CommandLineRunner {
     emailFornecedor.setEndereco("f@f.com");
 
     fornecedor.getEmails().add(emailFornecedor);
-
+    roleArray.clear();
+	roleArray.add(Perfil.ROLE_VENDEDOR);
+	fornecedor.getNivelDeAcesso().addAll(roleArray);
+	
     CredencialUsuarioSenha credencialFornecedor = new CredencialUsuarioSenha();
     credencialFornecedor.setInativo(false);
     credencialFornecedor.setNomeUsuario("dompedrofornecedor");
-    credencialFornecedor.setSenha("123456");
+
+    credencialFornecedor.setSenha(senha);
     credencialFornecedor.setCriacao(new Date());
     credencialFornecedor.setUltimoAcesso(new Date());
 
@@ -161,6 +179,10 @@ public class AutomanagerApplication implements CommandLineRunner {
     Email emailCliente = new Email();
     emailCliente.setEndereco("c@c.com");
 
+    roleArray.clear();  
+	roleArray.add(Perfil.ROLE_CLIENTE);
+	cliente.getNivelDeAcesso().addAll(roleArray);
+    
     cliente.getEmails().add(emailCliente);
 
     Documento cpfCliente = new Documento();
@@ -173,7 +195,7 @@ public class AutomanagerApplication implements CommandLineRunner {
     CredencialUsuarioSenha credencialCliente = new CredencialUsuarioSenha();
     credencialCliente.setInativo(false);
     credencialCliente.setNomeUsuario("dompedrocliente");
-    credencialCliente.setSenha("123456");
+    credencialCliente.setSenha(senha);
     credencialCliente.setCriacao(new Date());
     credencialCliente.setUltimoAcesso(new Date());
 

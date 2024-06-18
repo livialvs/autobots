@@ -9,6 +9,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,6 +58,7 @@ public class VendaControle {
     @Autowired
     private AdicionadorLinkVenda adicionadorLinkVenda;
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
     @GetMapping
     public ResponseEntity<List<Venda>> buscarVendas() {
       List<Venda> vendas = servico.buscarVendas();
@@ -72,6 +74,7 @@ public class VendaControle {
       }
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_VENDEDOR', 'ROLE_GERENTE')")
     @GetMapping("/{id}")
     public ResponseEntity<Venda> buscarVenda(@PathVariable Long id) {
       List<Venda> vendas = servico.buscarVendas();
@@ -84,6 +87,7 @@ public class VendaControle {
       }
     }
     
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_VENDEDOR', 'ROLE_GERENTE')")
     @PostMapping("/cadastro/{idEmpresa}")
     public ResponseEntity<?> cadastroVenda(
       @RequestBody Venda vendas,
@@ -154,7 +158,7 @@ public class VendaControle {
     }
 
 
-
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_VENDEDOR', 'ROLE_GERENTE')")
     @PutMapping("/atualizar/{id}")
     public ResponseEntity<?> atualizarVenda(@PathVariable Long id, @RequestBody Venda vendaAtualizada) {
         Venda vendaAtual = servico.buscarVenda(id);
@@ -172,6 +176,7 @@ public class VendaControle {
         return ResponseEntity.ok("Venda atualizada com sucesso");
     }
     
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_GERENTE')")
 	@DeleteMapping("/deletar/{idVenda}")
 	public ResponseEntity<?> deletarVenda(@PathVariable Long idVenda) {
 		List<Empresa> empresas = servicoEmpresa.buscarEmpresas();
